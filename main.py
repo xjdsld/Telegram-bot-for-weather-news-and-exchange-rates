@@ -31,7 +31,7 @@ def get_weather_for_the_city(message):
         "lang": "en",
         "units": "metric",
     }
-    
+
     response = requests.get(url, params=params)
     data = response.json()
 
@@ -41,7 +41,7 @@ def get_weather_for_the_city(message):
         bot.send_message(message.chat.id, f"city: {city}, temp: {temp}, weather: {weather}")
     else:
         bot.send_message(message.chat.id, 'No results found')
-        
+
     bot.send_message(message.chat.id, 'Do you want to save this city to your favorites, type "/save" to confirm')
 
 @bot.message_handler(commands= ['save'])
@@ -55,16 +55,15 @@ def save_city(message):
         bot.send_message(chat_id, f"{city} saved to your favorites!")
     else:
         bot.send_message(chat_id, "No city to save. Please check weather first.")
-        
+
 @bot.message_handler(commands= ['favourites'])
 def get_favourites(message):
     chat_id = message.chat.id
     if chat_id  not in faves:
         bot.send_message(chat_id, 'You have no cities saved')
         return
-        
+
     keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-    # buttons = [types.KeyboardButton(city) for city in faves[chat_id]]
     buttons = []
     for city in faves[chat_id]:
         button = types.KeyboardButton(city)
@@ -73,7 +72,36 @@ def get_favourites(message):
 
     bot.send_message(chat_id, "Your favorite cities:", reply_markup=keyboard)
 
+def is_favourite_city(message):
+    chat_id = message.chat.id
+    if chat_id not in faves:
+        return False
+    if message.text not in faves[chat_id]:
+        return False
+    return True
 
+@bot.message_handler(func=is_favourite_city)
+def get_wheather_for_favourit_city(message):
+    city = message.text
+
+    url = f"https://api.openweathermap.org/data/2.5/weather?q={city}&appid={Weather_API}"
+    params = {
+        "lang": "en",
+        "units": "metric",
+    }
+
+    response = requests.get(url, params=params)
+    data = response.json()
+
+    if response.status_code == 200:
+        temp = data["main"]["temp"]
+        weather = data["weather"][0]["description"]
+        bot.send_message(message.chat.id, f"city: {city}, temp: {temp}, weather: {weather}")
+    else:
+        bot.send_message(message.chat.id, 'No results found')
+    
+    
+        
 @bot.message_handler(commands = ['news'])
 def get_news_category(message):
     chat_id = message.chat.id
@@ -139,10 +167,9 @@ def send_exchange_rate(message):
         return
 
     bot.send_message(chat_id, f"1 UAH = {rate} {currency.upper()}")
-    
+
     if response.status_code != 200:
         bot.send_message(chat_id, "No information found.")
         return
         
-
 bot.polling()
